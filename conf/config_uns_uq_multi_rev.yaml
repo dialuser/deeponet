@@ -1,0 +1,83 @@
+#alex sun: 01/21/2024 this is for the uq ensemble experiments
+#
+defaults :
+  - modulus_default
+  - /arch/fully_connected_cfg@arch.branch
+  - /arch/fourier_cfg@arch.trunk
+  - /arch/deeponet_cfg@arch.deeponet
+  - scheduler: tf_exponential_lr #
+  - optimizer: adam    
+  - loss: sum #sum
+  - _self_
+
+optimizer:
+  lr: 1e-3
+
+custom:
+  retrain: True
+  ats_seed: 8819
+  fold_no: 0
+  theta_scaling: 'minmax'
+  start_date: '1991/10/01'      #combined train/test data
+  end_date: '2000/09/30'
+  #cal_start_date: '1991/10/01'  #calibration start
+  #cal_end_date: '1998/09/30'  
+  cal_start_date: '1993/10/01'  #calibration start for WRR
+  cal_end_date: '2000/09/30'  
+  test_start_date: '1991/10/01' #testing start
+  test_end_date: '1993/09/30'
+  pred_start_date: '1998/10/01'
+  pred_end_date: "2000/09/30"
+  param_dim: 13 #size of parameters  
+  data_file: 'data/ats_run_clean_v1.pkl'
+  validate_subfolder: 'uppersink_deeponet_uq_multisite_rev' #folder for grabbing validation data
+  learn_delta: True #true to learn mismatch
+  train_split_no: 4    #test the number of realizations needed [06252024]
+  ga:
+    generation: 80
+    population: 300
+    loss_fun: 5  #see myutils.py for loss fun types
+  lstm:
+    backward: 60
+    forward: 1
+  uqdpo:
+    retrain: False
+    backward: 90
+    forward: 3
+    learning_rate: 0.001
+    batch_size: 256
+    n_epochs: 200
+    seed:  20230101 #202301311 #2022023 #1322024 #20230101 #202303311
+    id_train: [0]
+    id_test: [0]
+arch:
+  branch:
+    nr_layers: 4
+    layer_size: 256
+    adaptive_activations: False
+    skip_connections: False
+  trunk:
+    frequencies: "('axis', [i for i in range(7)])"
+    nr_layers: 4
+    layer_size: 256
+  deeponet:
+    output_keys: u
+
+scheduler:
+  #params for tf_exponential_lr
+  decay_rate: 0.85
+  decay_steps: 5000
+  #params for cosine_annealing
+  #T_max: 10000
+  #eta_min: 0.0
+  
+training:
+  rec_validation_freq: 10000
+  max_steps : 80000
+  save_network_freq: 10000
+
+batch_size:
+  train: 10000
+  validation: 10000
+
+save_filetypes : "np"
