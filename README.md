@@ -40,5 +40,18 @@ pip install seaborn
 ### Run code
 
 ```
->python uppersink_deeponet_uq_multisde.py
+python uppersink_deeponet_uq_multisde.py
 ```
+
+The learning tasks are controlled inside `uppersink_deeponet_uq_multisde.py`. 
+
+- itask=1, train deeponet surrogate
+- itask=2, run genetic algorithm (GA)
+- itask=3, do UQ
+- itask=4, plot GA results for the five experiments
+
+The GA experiments are controlled by expno in `uppersink_deeponet_uq_multisde.py`.
+
+The train ensemble size experiment are controlled by train_split_no in `config_uns_uq_multi_rev.yaml`.
+
+
