@@ -526,4 +526,45 @@ def setLossFun(itype):
         return NRMSE()
     elif itype == 6:
         return SMAPE()
-        
+
+def density_scatter(actualdata, prediction,fig,sub_fig_index,nrow=2,ncol=2):
+    # https://github.com/astrofrog/mpl-scatter-density
+
+    import mpl_scatter_density # adds projection='scatter_density'
+    import matplotlib.colors as mcolors
+    import matplotlib.pyplot as plt
+
+    # "Viridis-like" colormap with white background
+    white_viridis = mcolors.LinearSegmentedColormap.from_list('white_viridis', [
+        (0, '#ffffff'),
+        (1e-20, '#440053'),
+        (0.2, '#404388'),
+        (0.4, '#2a788e'),
+        (0.6, '#21a784'),
+        (0.8, '#78d151'),
+        (1, '#fde624'),
+    ], N=256)
+
+    def using_mpl_scatter_density(fig, x, y):
+        ax = fig.add_subplot(nrow, ncol, sub_fig_index, projection='scatter_density')
+        # density = ax.scatter_density(x, y, cmap=white_viridis, norm=mcolors.SymLogNorm(linthresh=1.0))
+        density = ax.scatter_density(x, y, cmap=white_viridis)
+        fig.colorbar(density, label='Number of points per pixel')
+        return ax
+    xdata = np.ma.masked_where(actualdata == 0, actualdata).ravel()
+    ydata = np.ma.masked_where(prediction == 0, prediction).ravel()
+
+    
+    ax =using_mpl_scatter_density(fig, xdata, ydata)
+
+    return ax
+
+def scatter_kde(actualdata, prediction,fig,sub_fig_index,nrow=2,ncol=2):
+    from scipy.stats import gaussian_kde
+
+    ax = fig.add_subplot(nrow, ncol, sub_fig_index)
+    # Calculate the point density
+    xy = np.vstack([actualdata,prediction])
+    z = gaussian_kde(xy)(xy)
+    ax.scatter(actualdata, prediction, c=z, s=80)
+    return ax

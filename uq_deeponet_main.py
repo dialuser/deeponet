@@ -3,6 +3,7 @@
 #adapted from https://github.com/cmoyacal/DeepONet-Grid-UQ/blob/master/src/training/supervisor.py
 #this is seq2seq model used in the manuscript
 #rev: 06262024, revised to add ensemble crps score for WRR revision
+#rev: 09112024, added kde density scatter plot for WRR revision
 #===============================================================================================
 import os,sys
 import torch
@@ -20,7 +21,7 @@ from torch.utils.data import Subset, Dataset, DataLoader
 import matplotlib.pyplot as plt
 import hydrostats as HydroStats
 
-from myutil import getEnsembleUSGSData, transformQ
+from myutil import getEnsembleUSGSData, transformQ, scatter_kde
 from uq_deeponet import DPODataset, DeepONet, prob_DeepONet, probabilistic_train,test
 
 device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
@@ -451,16 +452,19 @@ def uq_deeponet(cfg: ModulusConfig) -> None:
     dayofyear_arr = pd.to_datetime(t_axis)
     dayofyear_arr = dayofyear_arr.dayofyear.values
 
+    #Figure 6 in WRR
     for key in obsDict.keys():
         fig, axes = plt.subplots(1,1, figsize=(8,6))
         mask = dataDict['mask'][key]
         #seqB:-seqF, remove the initial offset and the last offset
         obsval = obsDict[key].values[seqB:-seqF,0]
         axes.plot(t_axis, obsval, linestyle=':', color='tab:green', label='Obs', linewidth=1.5)
+        #this is from the GA calibrated model
         simuval = simuDict[key][seqB:-seqF]
         axes.plot(t_axis, simuval, color='tab:blue', label='DeepONet-P', linewidth=1.0)
 
         axes.fill_between(t_axis, predMin, predMax, color='darkgray', label='DPO bound')
+        #this is the seq learn model
         axes.plot(t_axis, predMean, color='black', linewidth=1.7, label='DPO mean')
 
         axes.set_xlabel('Time')
@@ -491,5 +495,33 @@ def uq_deeponet(cfg: ModulusConfig) -> None:
         #calculate relative CRPS (eqn 1 in the above ref) in percentage
         crpss = (crps_dictionary_clim['crpsMean']-crps_dictionary_dpo['crpsMean'])/crps_dictionary_clim['crpsMean']
         print ('CRPSS ', crpss*100)
+
+        #asun 09112024, add scatter plot as part of WRR revision. This is in Supporting Information, Fig S3 & S4
+        #note: to generate scatter plot for Figure 6, need to run the code twice, w/ and w/o learn_delta
+        #
+        fig = plt.figure(figsize=(8,6))
+        for key in obsDict.keys():
+            #seqB:-seqF, remove the initial offset and the last offset
+            obsval = obsDict[key].values[seqB:-seqF,0]
+            
+            R = HydroStats.pearson_r(predMean, obsval)
+            #axes.scatter(obsval,simuval, marker='o', s=80)
+            axes = scatter_kde(obsval, predMean, fig=fig, sub_fig_index=1, nrow=1, ncol=1)
+            axes.set_ylabel('Predicted Q (m$^3$/s)',fontsize=12)
+            axes.set_xlabel('Observed Q (m$^3$/s)',fontsize=12)
+            axes.plot([0, 1], [0, 1], transform=axes.transAxes, ls='--', color='gray')
+            axes.set_xlim([0.01, 100])
+            axes.set_ylim([0.01, 100])       
+            axes.set_xscale('log')
+            axes.set_yscale('log')
+            axes.set_title(f"Gage {key}, R={R:3.2f}")
+
+        if cfg.custom.learn_delta:
+            plt.savefig(to_absolute_path(f"outputs/uqdpo_scatter{key}_delta.png"))
+        else:
+            plt.savefig(to_absolute_path(f"outputs/uqdpo_scatter{key}.png"))
+
+        plt.close()
+
 if __name__ == "__main__":
     uq_deeponet()

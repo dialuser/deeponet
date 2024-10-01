@@ -12,7 +12,9 @@
 #rev date: 2/7/2024, add barplot
 #rev date: this is the final version used for generating deeponet paper results
 #rev date: 06252024 modified for WRR revision
-#
+#           Added ablation study on ensemble size in compareEnsembleSize
+#           Added GA convergence plot in do deap
+#rev date: added scatter plots for Figure 5 and 6
 #=========================================================================================
 import torch
 import numpy as np
@@ -43,7 +45,8 @@ from tqdm import tqdm
 import hydrostats as HydroStats
 import time
 import sys
-from myutil import LpLoss, MyGridValidator, getEnsembleUSGSData,transformQ, inverseTransformQ,printParams, setLossFun
+from myutil import LpLoss, MyGridValidator, getEnsembleUSGSData,transformQ, \
+    inverseTransformQ,printParams, setLossFun, scatter_kde
 
 def getData(cfg, testid=None, mode='train'):
     """ Data preparation for DeepONet
@@ -1003,13 +1006,12 @@ def plotGAExp(cfg: ModulusConfig) -> None:
     import itertools
     import seaborn as sns
 
-    nExp = 5
+    nExp = 5 #number of experiments
     dataDict = getData(cfg, mode='test')
     cfg.network_dir = getNetwork_dir(dataDict['id_train'], dataDict['fold_no'])
     theta_min, theta_max = dataDict['theta_scaler']
     
     #Experiments start with index 1
-    allParam = []
     paramNames = [
     "PT-canopy",
     "PT-ground",
@@ -1179,6 +1181,35 @@ def doSimpleBound(cfg: ModulusConfig) -> None:
     plt.savefig(to_absolute_path(f"outputs/simplebound_singlesite_plot_exp{dataDict['expno']}.eps"))
     plt.close()
 
+    #asun 09/11/2024, add scatter plots
+    fig = plt.figure(figsize=(16,12))
+    counter = 0
+    for ix, station_id in enumerate(obs_dict.keys()):
+        if station_id in plotStations:
+            obs = obs_dict[station_id]['Q']
+            predicted = pred_mean[ix,:]
+            obs = inverseTransformQ(dataDict['scaler'], obs).flatten()
+            predicted = inverseTransformQ(dataDict['scaler'], predicted).flatten()
+
+            #calculate pearson's R
+            R_pearson = HydroStats.pearson_r(predicted, obs)
+            print ('Pearson R is ', R_pearson, 'Spearman R is', HydroStats.spearman_r(predicted, obs))
+
+            ax = scatter_kde(obs, predicted, fig=fig, sub_fig_index=counter+1, nrow=2, ncol=2)
+            ax.set_ylabel('Predicted Q (m$^3$/s)',fontsize=12)
+            ax.set_xlabel('Observed Q (m$^3$/s)',fontsize=12)
+            ax.plot([0, 1], [0, 1], transform=ax.transAxes, ls='--', color='gray')
+            ax.set_title(f'{labels[counter]} Gage{station_id}, R={R_pearson:3.2f}', fontsize=14)
+            ax.set_xlim([0.01, 100])
+            ax.set_ylim([0.01, 100])            
+            ax.set_xscale('log')
+            ax.set_yscale('log')
+
+            counter+=1
+    plt.tight_layout(w_pad=0.2, h_pad=0.35)
+    plt.savefig(to_absolute_path(f"outputs/scatterplots_exp{dataDict['expno']}.eps")) 
+    plt.close()
+    
 def plotBoundResult(ax, plotlable, dataDict, obs_u, pred_u, predDict, station_id,ix,counter):
     """For Figure 5 parameter sensitivity
     """
@@ -1210,8 +1241,9 @@ def plotBoundResult(ax, plotlable, dataDict, obs_u, pred_u, predDict, station_id
     ax.set_ylim([0.01, 100])
     ax.set_title(f'{plotlable} Gage{station_id}, mKGE={kge_final:4.3f}',fontsize=14)
 
+
 if __name__ == "__main__":
-    itask = 2
+    itask = 4
     if itask == 1:
         run()
     elif itask == 2:
