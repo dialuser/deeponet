@@ -4,7 +4,7 @@
 
 This repository includes codes for WRR paper, 
 
-Bridging hydrological ensemble simulation and learning using deep neural operators.
+[Bridging hydrological ensemble simulation and learning using deep neural operators](https://agupubs.onlinelibrary.wiley.com/doi/full/10.1029/2024WR037555)
 
 
 - `config_uns_uq_multi.yaml`: configuration file for generating Figures 3-5 in the manuscript
@@ -58,4 +58,18 @@ The GA experiments are controlled by expno in `uppersink_deeponet_uq_multisite_r
 
 The train ensemble size experiment are controlled by train_split_no in `config_uns_uq_multi_rev.yaml`.
 
+If you use this code, please consider citing our WRR paper, 
+
+```
+@article{sun2024bridging,
+  title={Bridging hydrological ensemble simulation and learning using deep neural operators},
+  author={Sun, Alexander Y and Jiang, Peishi and Shuai, Pin and Chen, Xingyuan},
+  journal={Water Resources Research},
+  volume={60},
+  number={10},
+  pages={e2024WR037555},
+  year={2024},
+  publisher={Wiley Online Library}
+}
+```
 
