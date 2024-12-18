@@ -42,7 +42,7 @@ pip install mpl-scatter-density
 
 ### Ensemble dataset 
 
-The ATS ensemble dataset used in this study can be downloaded from this [Zenodo repo](https://doi.org/10.5281/zenodo.10834984)
+The ATS ensemble dataset used in this study can be downloaded from this [Zenodo repo](https://doi.org/10.5281/zenodo.10834984) The ATS ensemble files can be parsed using readensemble.py.
 
 ### Run code
 
